@@ -16,7 +16,7 @@ namespace pid_controller
         derivation_error = (current_error - prev_error) / time_interval;
         prev_error = current_error;
 
-        return (KP * current_error) + (KI * integral_error) + (KD * derivation_error)
+        return (KP * current_error) + (KI * integral_error) + (KD * derivation_error);
     }
 
     double PID::get_error() 
