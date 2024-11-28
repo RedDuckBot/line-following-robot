@@ -1,0 +1,13 @@
+README.md
+setup.py
+xbox360controller/__init__.py
+xbox360controller/controller.py
+xbox360controller.egg-info/PKG-INFO
+xbox360controller.egg-info/SOURCES.txt
+xbox360controller.egg-info/dependency_links.txt
+xbox360controller.egg-info/top_level.txt
+xbox360controller/linux/__init__.py
+xbox360controller/linux/input.py
+xbox360controller/linux/input_event_codes.py
+xbox360controller/linux/ioctl.py
+xbox360controller/linux/joystick.py
