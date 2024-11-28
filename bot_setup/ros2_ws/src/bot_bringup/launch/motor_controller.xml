@@ -1,6 +1,6 @@
 <!-- This launch file is the setup for operating a diff drive robot where a manager and motor controller nodes are started -->
 
 <launch>
-	<node pkg="util_manager" exec="manager"/>
-	<node pkg="util_motors" exec="motor_controller_node"/>
+	<node pkg="bot_manager" exec="manager"/>
+	<node pkg="bot_motors" exec="motor_controller_node"/>
 </launch>

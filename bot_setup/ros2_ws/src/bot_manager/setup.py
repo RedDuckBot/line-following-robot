@@ -20,7 +20,7 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            "manager=util_manager.robot_manager_node:main"
+            "manager=bot_manager.robot_manager_node:main"
         ],
     },
 )
