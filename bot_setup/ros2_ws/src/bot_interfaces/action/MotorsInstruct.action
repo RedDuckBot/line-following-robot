@@ -1,7 +1,12 @@
 #GOAL for motor controller instructions
 
-float32 left_joy_stick_y
-float32 right_joy_stick_y
+bool steer_right
+bool steer_left
+bool forward
+bool reverse
+
+float32 left_motors_effort
+float32 right_motors_effort
 ---
 #RESULT
 string result

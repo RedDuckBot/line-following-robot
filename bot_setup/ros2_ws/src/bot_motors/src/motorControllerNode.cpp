@@ -127,50 +127,59 @@ class MotorControllerNode : public rclcpp::Node
 	void execute_motor_goal_(const std::shared_ptr<MotorsGoalHandle> 
 		goal_handle)
 	{
-
-		double new_left_motors_effort, new_right_motors_effort;
+		double new_left_motors_effort = , new_right_motors_effort;
+		MotorDirection new_left_motors_dir, new_right_motors_dir;
 
 		auto goal = goal_handle -> get_goal();
-		float left_joy_y = goal -> left_joy_stick_y;
-		float right_joy_y = goal -> right_joy_stick_y; 
+		new_left_motors_effort = goal -> left_motors_effort
+		new_right_motors_effort = goal -> right_motors_effort
+
+		get_new_motors_direction(new_left_motors_dir, new_right_motors_dir, 
+			goal_handle);
+		set_change_in_motors_direction(new_left_motors_dir, 
+			new_right_motors_dir);
+
+		// auto goal = goal_handle -> get_goal();
+		// float left_joy_y = goal -> left_joy_stick_y;
+		// float right_joy_y = goal -> right_joy_stick_y; 
 		
-		MotorDirection left_joy_dir = MotorDirection::Forward;
-		MotorDirection right_joy_dir = MotorDirection::Forward;
+		// MotorDirection left_joy_dir = MotorDirection::Forward;
+		// MotorDirection right_joy_dir = MotorDirection::Forward;
 		
-		//Set left joy stick direction
-		if (left_joy_y < 0)
-		{
-			left_joy_dir = MotorDirection::Forward;
-		} 
-		else 
-		{
-			left_joy_dir = MotorDirection::Backward;
-		}
+		// //Set left joy stick direction
+		// if (left_joy_y < 0)
+		// {
+		// 	left_joy_dir = MotorDirection::Forward;
+		// } 
+		// else 
+		// {
+		// 	left_joy_dir = MotorDirection::Backward;
+		// }
 
-		//Set right joy stick direction
-		if (right_joy_y < 0)
-		{
-			right_joy_dir = MotorDirection::Forward;
-		}
-		else
-		{
-			right_joy_dir = MotorDirection::Backward;
-		}
+		// //Set right joy stick direction
+		// if (right_joy_y < 0)
+		// {
+		// 	right_joy_dir = MotorDirection::Forward;
+		// }
+		// else
+		// {
+		// 	right_joy_dir = MotorDirection::Backward;
+		// }
 
-		//Check for change in motor directions and set them
-		if (leftMotors_->getDirection() != left_joy_dir)
-		{
-			leftMotors_->setDirection(left_joy_dir);
-		}
-		if (rightMotors_->getDirection() != right_joy_dir)
-		{
-			rightMotors_->setDirection(right_joy_dir);
-		}
+		// //Check for change in motor directions and set them
+		// if (leftMotors_->getDirection() != left_joy_dir)
+		// {
+		// 	leftMotors_->setDirection(left_joy_dir);
+		// }
+		// if (rightMotors_->getDirection() != right_joy_dir)
+		// {
+		// 	rightMotors_->setDirection(right_joy_dir);
+		// }
 
-		new_left_motors_effort = controllerInput_to_motorEffort(
-			abs(left_joy_y));
-		new_right_motors_effort = controllerInput_to_motorEffort(
-			abs(right_joy_y));
+		// new_left_motors_effort = controllerInput_to_motorEffort(
+		// 	abs(left_joy_y));
+		// new_right_motors_effort = controllerInput_to_motorEffort(
+		// 	abs(right_joy_y));
 
 		leftMotors_->setEffortPercent(new_left_motors_effort);
 		rightMotors_->setEffortPercent(new_right_motors_effort);
