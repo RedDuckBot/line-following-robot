@@ -9,8 +9,10 @@ from rclpy.action import ActionClient
 
 class RobotNodeManager(Node):
     """
-    Represents a node manager within  a robot's network. Currently, 
-    routes incoming messages for motor controller. 
+    Represents a node manager for incoming messages/requests outside of the 
+    the robot's network . Currently, routes incoming messages from a remote 
+    controller (xbox 360 controller) sends motor instuctions to the 
+    motor controller node (action server). 
 
     Attributes:
         motors_client_: Represents an action client for motor controller node
@@ -50,12 +52,49 @@ class RobotNodeManager(Node):
                 msg (XboxController): Contains controller inputs.
         """
 
-        #Create motors goal
+        #Create motors goal with default values
         motors_goal = MotorsInstruct.Goal()
-        motors_goal.left_joy_stick_y = msg.left_joy_y
-        motors_goal.right_joy_stick_y = msg.right_joy_y
-        
+        motors_goal.steer_right = False
+        motors_goal.steer_left = False
+        motors_goal.forward = False
+        motors_goal.reverse = False
+        motors_goal.left_motors_effort = 0.0
+        motors_goal.right_motors_effort = 0.0
+
+        self.set_direction_for_motor_goal(motors_goal, msg)
+        self.set_motor_efforts_for_motor_goal(motor_goals, msg)
+
         self.motors_client_.send_goal_async(motors_goal)
+
+    def set_direction_for_motor_goal(self, motors_goal, msg: XboxController):
+        """
+            Use joy-stick values to determine direction of each set of motors.
+
+            Args:
+                msg (XboxController): Contains controller inputs.
+        """
+
+        if (msg.left_joy_y < 0.0) and (msg.right_joy_y < 0.0):
+            motors_goal.forward = True
+        else if (msg.left_joy_y > 0.0) and (msg.right_joy_y > 0.0):
+            motors_goal.reverse = True
+        else if (msg.left_joy_y < 0.0) and (msg.right_joy_y > 0.0):
+            motors_goal.steer_left = True
+        else if (msg.left_joy_y > 0.0) and (msg.right_joy_y < 0.0):
+            motors_goal.steer_right = True
+
+    def set_motor_efforts_for_motor_goal(self, motors_goals, 
+        msg:XboxController):
+        """
+            Use joy-stick values to determine motor efforts.
+
+            Args:
+                msg (XboxController): Contains controller inputs.
+        """
+
+            motors_goals.left_motors_effort = abs(msg.left_joy_y * 100)
+            motors_goals.right_motors_effort = abs(msg.right_joy_y * 100)
+
 
 def main(args=None):
     rclpy.init(args=args)

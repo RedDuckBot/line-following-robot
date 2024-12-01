@@ -5,6 +5,7 @@ bool steer_left
 bool forward
 bool reverse
 
+#motor effort values are bewteen [0,100]
 float32 left_motors_effort
 float32 right_motors_effort
 ---

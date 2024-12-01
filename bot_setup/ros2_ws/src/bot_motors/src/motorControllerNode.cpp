@@ -21,8 +21,8 @@ using namespace std::placeholders;
  * @class MotorNode
  * @brief Represents an action server for robot's motor controller (L298N). 
  * 
- * This class node communicates with robot's manager node to enable movement of 
- * entire robot.
+ * This class node receives requests in the form of MotorsInstruct 
+ * actions which contain instructions related to direction and motor efforts.
  */
 class MotorControllerNode : public rclcpp::Node 
 {
@@ -34,7 +34,6 @@ class MotorControllerNode : public rclcpp::Node
             rightMotors_(std::make_unique<MotorDriver>(
 				IN1, IN2, ENA, "rightMotors"))
         {
-		motor_control_enabled_ = false;
 		callback_group_1_ = this->create_callback_group(
             		rclcpp::CallbackGroupType::Reentrant);
 
@@ -56,7 +55,6 @@ class MotorControllerNode : public rclcpp::Node
     	std::unique_ptr <MotorDriver> leftMotors_; 
     	std::unique_ptr <MotorDriver> rightMotors_; 
 
-		bool motor_control_enabled_;
 		std::mutex mutex_;
 
 		std::shared_ptr<MotorsGoalHandle> current_handle_goal_;//motor instructs
@@ -127,54 +125,17 @@ class MotorControllerNode : public rclcpp::Node
 	void execute_motor_goal_(const std::shared_ptr<MotorsGoalHandle> 
 		goal_handle)
 	{
-		double new_left_motors_effort = , new_right_motors_effort;
+		double new_left_motors_effort, new_right_motors_effort;
 		MotorDirection new_left_motors_dir, new_right_motors_dir;
 
 		auto goal = goal_handle -> get_goal();
-		new_left_motors_effort = goal -> left_motors_effort
-		new_right_motors_effort = goal -> right_motors_effort
+		new_left_motors_effort = goal -> left_motors_effort;
+		new_right_motors_effort = goal -> right_motors_effort;
 
 		get_new_motors_direction(new_left_motors_dir, new_right_motors_dir, 
 			goal_handle);
 		set_change_in_motors_direction(new_left_motors_dir, 
 			new_right_motors_dir);
-
-		// auto goal = goal_handle -> get_goal();
-		// float left_joy_y = goal -> left_joy_stick_y;
-		// float right_joy_y = goal -> right_joy_stick_y; 
-		
-		// MotorDirection left_joy_dir = MotorDirection::Forward;
-		// MotorDirection right_joy_dir = MotorDirection::Forward;
-		
-		// //Set left joy stick direction
-		// if (left_joy_y < 0)
-		// {
-		// 	left_joy_dir = MotorDirection::Forward;
-		// } 
-		// else 
-		// {
-		// 	left_joy_dir = MotorDirection::Backward;
-		// }
-
-		// //Set right joy stick direction
-		// if (right_joy_y < 0)
-		// {
-		// 	right_joy_dir = MotorDirection::Forward;
-		// }
-		// else
-		// {
-		// 	right_joy_dir = MotorDirection::Backward;
-		// }
-
-		// //Check for change in motor directions and set them
-		// if (leftMotors_->getDirection() != left_joy_dir)
-		// {
-		// 	leftMotors_->setDirection(left_joy_dir);
-		// }
-		// if (rightMotors_->getDirection() != right_joy_dir)
-		// {
-		// 	rightMotors_->setDirection(right_joy_dir);
-		// }
 
 		// new_left_motors_effort = controllerInput_to_motorEffort(
 		// 	abs(left_joy_y));
@@ -186,12 +147,58 @@ class MotorControllerNode : public rclcpp::Node
 	}
 
 	/**
-	 *@brief Take a joy-stick value and convert it to a percentage [0,1]
-	 *@return the percentage or effort
+	 * @brief Based on new motor instructions determine the direction for left &
+	 *       right motors. (Utility func. for execute_motor_goal) 
+	 * @param goal_handle contains the new motor instructions	
+	 * @post the parameters for motors direction is set
 	 */
-	double controllerInput_to_motorEffort(double joy_stick_input) 
+	void get_new_motors_direction(
+		MotorDirection& new_left_motors_dir, 
+		MotorDirection& new_right_motors_dir, 
+		const std::shared_ptr<MotorsGoalHandle> goal_handle)
 	{
-		return joy_stick_input * 100;
+		auto goal = goal_handle -> get_goal();
+
+		if (goal -> steer_right)
+		{
+			new_left_motors_dir = MotorDirection::Backward;
+			new_right_motors_dir = MotorDirection::Forward;
+		}
+		else if (goal -> steer_left)
+		{
+			new_left_motors_dir = MotorDirection::Forward;
+			new_right_motors_dir = MotorDirection::Backward;
+
+		}
+		else if (goal -> reverse)
+		{
+			new_left_motors_dir = MotorDirection::Backward;
+			new_right_motors_dir = MotorDirection::Backward;
+
+		}
+		else //Forward
+		{
+			new_left_motors_dir = MotorDirection::Forward;
+			new_right_motors_dir = MotorDirection::Forward;
+		}
+	}
+
+	/**
+	* @brief Set directions for left and right motors.
+	*/
+	void set_change_in_motors_direction(
+		const MotorDirection new_left_motors_dir,
+		const MotorDirection new_right_motors_dir)
+	{
+		if (leftMotors_->getDirection() != new_left_motors_dir)
+		{
+			leftMotors_->setDirection(new_left_motors_dir);
+		}
+
+		if (rightMotors_->getDirection() != new_right_motors_dir)
+		{
+			rightMotors_->setDirection(new_right_motors_dir);
+		}
 	}
 
 	/**
