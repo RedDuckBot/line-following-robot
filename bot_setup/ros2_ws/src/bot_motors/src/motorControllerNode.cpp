@@ -129,18 +129,17 @@ class MotorControllerNode : public rclcpp::Node
 		MotorDirection new_left_motors_dir, new_right_motors_dir;
 
 		auto goal = goal_handle -> get_goal();
+
 		new_left_motors_effort = goal -> left_motors_effort;
 		new_right_motors_effort = goal -> right_motors_effort;
 
-		get_new_motors_direction(new_left_motors_dir, new_right_motors_dir, 
-			goal_handle);
-		set_change_in_motors_direction(new_left_motors_dir, 
-			new_right_motors_dir);
-
-		// new_left_motors_effort = controllerInput_to_motorEffort(
-		// 	abs(left_joy_y));
-		// new_right_motors_effort = controllerInput_to_motorEffort(
-		// 	abs(right_joy_y));
+		if (!(goal->idle))
+		{
+			get_new_motors_direction(new_left_motors_dir, new_right_motors_dir, 
+				goal_handle);
+			set_change_in_motors_direction(new_left_motors_dir, 
+				new_right_motors_dir);
+		}
 
 		leftMotors_->setEffortPercent(new_left_motors_effort);
 		rightMotors_->setEffortPercent(new_right_motors_effort);
@@ -159,12 +158,12 @@ class MotorControllerNode : public rclcpp::Node
 	{
 		auto goal = goal_handle -> get_goal();
 
-		if (goal -> steer_right)
+		if (goal -> counter_clockwise)
 		{
 			new_left_motors_dir = MotorDirection::Backward;
 			new_right_motors_dir = MotorDirection::Forward;
 		}
-		else if (goal -> steer_left)
+		else if (goal -> clockwise)
 		{
 			new_left_motors_dir = MotorDirection::Forward;
 			new_right_motors_dir = MotorDirection::Backward;

@@ -11,7 +11,7 @@ class RobotNodeManager(Node):
     """
     Represents a node manager for incoming messages/requests outside of the 
     the robot's network . Currently, routes incoming messages from a remote 
-    controller (xbox 360 controller) sends motor instuctions to the 
+    controller (xbox 360 controller) and sends motor instuctions to the 
     motor controller node (action server). 
 
     Attributes:
@@ -54,15 +54,14 @@ class RobotNodeManager(Node):
 
         #Create motors goal with default values
         motors_goal = MotorsInstruct.Goal()
-        motors_goal.steer_right = False
-        motors_goal.steer_left = False
+        motors_goal.clockwise = False
+        motors_goal.counter_clockwise = False
         motors_goal.forward = False
         motors_goal.reverse = False
-        motors_goal.left_motors_effort = 0.0
-        motors_goal.right_motors_effort = 0.0
+        motors_goal.idle = False
 
         self.set_direction_for_motor_goal(motors_goal, msg)
-        self.set_motor_efforts_for_motor_goal(motor_goals, msg)
+        self.set_motor_efforts_for_motor_goal(motors_goal, msg)
 
         self.motors_client_.send_goal_async(motors_goal)
 
@@ -74,16 +73,18 @@ class RobotNodeManager(Node):
                 msg (XboxController): Contains controller inputs.
         """
 
-        if (msg.left_joy_y < 0.0) and (msg.right_joy_y < 0.0):
+        if (msg.left_joy_y < 0.0 and msg.right_joy_y < 0.0): 
             motors_goal.forward = True
-        else if (msg.left_joy_y > 0.0) and (msg.right_joy_y > 0.0):
+        elif (msg.left_joy_y > 0.0 and msg.right_joy_y > 0.0): 
             motors_goal.reverse = True
-        else if (msg.left_joy_y < 0.0) and (msg.right_joy_y > 0.0):
-            motors_goal.steer_left = True
-        else if (msg.left_joy_y > 0.0) and (msg.right_joy_y < 0.0):
-            motors_goal.steer_right = True
+        elif (msg.left_joy_y < 0.0 and msg.right_joy_y > 0.0):
+            motors_goal.counter_clockwise = True
+        elif (msg.left_joy_y > 0.0 and msg.right_joy_y < 0.0): 
+            motors_goal.clockwise = True
+        else:
+            motors_goal.idle = True
 
-    def set_motor_efforts_for_motor_goal(self, motors_goals, 
+    def set_motor_efforts_for_motor_goal(self, motors_goal, 
         msg:XboxController):
         """
             Use joy-stick values to determine motor efforts.
@@ -91,9 +92,12 @@ class RobotNodeManager(Node):
             Args:
                 msg (XboxController): Contains controller inputs.
         """
-
-            motors_goals.left_motors_effort = abs(msg.left_joy_y * 100)
-            motors_goals.right_motors_effort = abs(msg.right_joy_y * 100)
+        if motors_goal.idle:
+            motors_goal.left_motors_effort = 0.0
+            motors_goal.right_motors_effort = 0.0
+        else:
+            motors_goal.left_motors_effort = abs(msg.left_joy_y * 100)
+            motors_goal.right_motors_effort = abs(msg.right_joy_y * 100)
 
 
 def main(args=None):

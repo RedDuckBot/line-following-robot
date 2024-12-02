@@ -1,9 +1,10 @@
-#GOAL for motor controller instructions
+#GOAL for motor controller instructions (diff drive setup)
 
-bool steer_right
-bool steer_left
 bool forward
 bool reverse
+bool clockwise
+bool counter_clockwise
+bool idle
 
 #motor effort values are bewteen [0,100]
 float32 left_motors_effort
