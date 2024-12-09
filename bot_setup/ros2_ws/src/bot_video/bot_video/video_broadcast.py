@@ -49,8 +49,6 @@ def getClients() -> list:
     Raises:
         FileNotFoundError: If the file doesn't exist.
     """
-    tempClientName = ""
-    tempClientPort = -1 
     clients = []
 
     try:
