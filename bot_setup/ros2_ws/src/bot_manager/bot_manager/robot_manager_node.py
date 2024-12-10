@@ -5,6 +5,9 @@ from rclpy.node import Node
 from bot_interfaces.action import MotorsInstruct 
 from bot_interfaces.msg import XboxController
 from rclpy.action import ActionClient
+from rclpy.lifecycle import LifecycleNode
+from rclpy.lifecycle import Transition
+from rclpy.lifecycle import LifecycleNodeInterface
 
 
 class RobotNodeManager(Node):
@@ -12,7 +15,12 @@ class RobotNodeManager(Node):
     Represents a node manager for incoming messages/requests outside of the 
     the robot's network . Currently, routes incoming messages from a remote 
     controller (xbox 360 controller) and sends motor instuctions to the 
-    motor controller node (action server). 
+    motor controller node (action server) or cancels line following task,
+    depending on which mode the robots in, which is manual or line following. 
+
+    Modes:
+        back button press  ---> manual mode
+        start button press ---> line following mode
 
     Attributes:
         motors_client_: Represents an action client for motor controller node
@@ -29,6 +37,12 @@ class RobotNodeManager(Node):
                  motors_topic_name)
         self.controller_client_ = self.create_subscription(XboxController,
                 "/xbox_controller", self.handle_controller_messages, 10)
+        self.lifecycle_node_client = self.create_client(LifecycleNodeInterface,
+                                        "/PIDMotor")
+
+
+        self.manual_mode = True 
+        self.is_line_following = False
 
         self.get_logger().info("Robot manager started")
 
@@ -40,8 +54,25 @@ class RobotNodeManager(Node):
         Args:
                 msg (XboxController): Contains controller inputs.
         """
-        
-        self.send_motors_goal(msg)
+        if msg.start == True and self.is_line_following == False: 
+            self.manual_mode = False
+            self.is_line_following = True
+            self.handle_line_following_mode()
+        else:
+            self.get_logger().info("Line following mode already enabled.")
+
+        if msg.back == True and self.is_line_following:
+            self.manual_mode = True
+            self.is_line_following = False
+            self.handle_line_following_mode()
+        else:
+            self.get_logger().info("Manual mode is already enabled.")
+
+        if self.manual_mode:
+            self.send_motors_goal(msg)
+
+    def handle_line_following(self):
+        self.get_logger().info()
 
     def send_motors_goal(self, msg: XboxController):
         """
