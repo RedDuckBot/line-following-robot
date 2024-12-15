@@ -69,6 +69,7 @@ class RobotNodeManager(Node):
         self.pid_node_state = None 
 
         self.get_logger().info("Robot manager started")
+        self.get_logger().info("Make sure PID motor node is running before trying to use line following mode")
 
 
     def handle_controller_messages(self, msg: XboxController):
@@ -154,9 +155,9 @@ class RobotNodeManager(Node):
         """
         Get the state of lifecycle, PID motor node and return it's state.
         """
+
         req = GetState.Request()
         future = self.cli_get_state.call_async(req)
-        rclpy.spin_until_future_complete(self, future)
         if future.result():
             state = future.result().current_state.label
             self.get_logger().info(f'Current state of PID motor node: {state}')
