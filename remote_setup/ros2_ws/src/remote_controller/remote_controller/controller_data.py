@@ -15,6 +15,7 @@ class Controller:
     left_bumper: bool = False
     right_bumper: bool = False
     back: bool = False #Also called select
+    start: bool = False
     mode: bool = False #Big Center button
 
     #Values for joysticks and triggers
