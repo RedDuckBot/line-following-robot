@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import cv2, socket, pickle, sys
 
 """Program acts as a UDP server for viewing Stroam's video camera."""
@@ -12,13 +14,12 @@ def main():
     print("Video Server ready for bot's floor view")
     while True:
         payload = video_server_UDPsocket.recvfrom(1000000)
-        stroam_ip = payload[1][0]
         data = payload[0]
 
         data = pickle.loads(data)
 
         img = cv2.imdecode(data, cv2.IMREAD_COLOR)
-        cv2.imshow("Turret View", img)
+        cv2.imshow("Floor View", img)
 
         if cv2.waitKey(5) & 0xFF == 113:
             break
