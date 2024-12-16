@@ -76,7 +76,6 @@ class XboxControllerNode(Node):
         self.publish_controller_input()
 
     def on_button_press(self, button):
-        
         self.set_controller_state(button)
         self.publish_controller_input()
 
@@ -133,6 +132,7 @@ class XboxControllerNode(Node):
         msg.left_bumper = self.controller_.left_bumper
         msg.right_bumper = self.controller_.right_bumper
         msg.back = self.controller_.back
+        msg.start = self.controller_.start
         msg.mode = self.controller_.mode
 
         msg.left_joy_x = self.controller_.left_joy_x
