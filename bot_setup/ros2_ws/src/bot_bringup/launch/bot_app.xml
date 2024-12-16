@@ -1,6 +1,11 @@
 <!-- This launch file is the setup for operating a diff drive robot where a manager and motor controller nodes are started -->
-
 <launch>
+	<let name="vid_config_path" 
+	value="/home/redbot/projects/line-following-robot/bot_setup/ros2_ws/src/bot_video/config/params.yaml"/>
+
 	<node pkg="bot_manager" exec="manager"/>
 	<node pkg="bot_motors" exec="motor_controller_node"/>
+	<node pkg="bot_video" exec="pid_node">
+		<param from="$(var vid_config_path)"/>
+	</node>
 </launch>

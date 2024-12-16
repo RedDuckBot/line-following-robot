@@ -20,6 +20,7 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
+            "pid_node=bot_video.PID_video_node:main"
         ],
     },
 )

@@ -3,7 +3,7 @@
 import rclpy, socket, pickle, threading, cv2, time
 from rclpy.lifecycle.node import LifecycleState, TransitionCallbackReturn, LifecycleNode
 import numpy as np
-from PID import PID
+from bot_video.PID import PID
 from bot_interfaces.action import MotorsInstruct 
 from rclpy.action import ActionClient
 
@@ -22,8 +22,8 @@ class PIDMotorNode(LifecycleNode):
         Cx:        Refers to x coordinate of centroid of tape
 
     Attributes:
-        host_ip (str):              IP of server for camera floor view
-        host_port (int):            Port of server for camera floor view
+        host_ip (str):              IP of server for PID controller 
+        host_port (int):            Port of server for PID controller 
         motors_client:              Represents an action client for motors node
         video_server_UDPsocket:     Socket for floor view server      
         pid_thread:                 Thread sends motor instructions 
@@ -33,18 +33,16 @@ class PIDMotorNode(LifecycleNode):
     """
 
     def __init__(self):
-        super().__init__("PIDMotor")
-
+        super().__init__("pid_node")
         self.declare_parameters(
-            namespace='',
-            parameters=[
-                ("host_ip", rclpy.Parameter.Type.STRING),
-                ("host_port",rclpy.Parameter.Type.INTEGER)
-            ]
-        )
+                namespace='',
+                parameters=[
+                    ("pid_server_ip", rclpy.Parameter.Type.STRING),
+                    ("pid_port", rclpy.Parameter.Type.INTEGER),
+                ])
+        self.host_ip = self.get_parameter("pid_server_ip").value
+        self.host_port = self.get_parameter("pid_port").value
 
-        self.host_ip = self.get_parameters("host_ip")
-        self.host_port = self.get_parameters("host_port")
         self.video_server_UDPsocket = None
         self.pid_thread = None
         self.is_acitve = False

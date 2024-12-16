@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 from socket import * 
 import pickle, cv2, sys
 
@@ -62,8 +64,6 @@ def getClients() -> list:
         raise FileNotFoundError("Clients file not found.")
 
     return clients
-
-
 
 if __name__ == "__main__":
     main()

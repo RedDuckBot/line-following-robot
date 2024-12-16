@@ -18,7 +18,7 @@ TRANSITION_STATES = {
     4: "TRANSITION_DEACTIVATE",
     5: "TRANSITION_UNCONFIGURED_SHUTDOWN",
     6: "TRANSITION_INACTIVE_SHUTDOWN",
-    7: "TRANSITION__ACTIVE_SHUTDOWN",
+    7: "TRANSITION_ACTIVE_SHUTDOWN",
     8: "TRANSITION_DESTROY"
 }
 
@@ -60,17 +60,18 @@ class RobotNodeManager(Node):
 
         #Create command line interfaces for PID node
         self.cli_change_state = self.create_client(ChangeState, 
-                                    '/PIDMotor/change_state')
+                                    '/pid_node/change_state')
         self.cli_get_state = self.create_client(GetState, 
-                                '/PIDMotor/get_state')
+                                '/pid_node/get_state')
+
+        while not self.cli_get_state.wait_for_service(timeout_sec=1.0):
+            self.get_logger().info('Waiting for pid node state service...')
 
         self.manual_mode = True 
         self.is_line_following = False
         self.pid_node_state = None 
 
         self.get_logger().info("Robot manager started")
-        self.get_logger().info("Make sure PID motor node is running before trying to use line following mode")
-
 
     def handle_controller_messages(self, msg: XboxController):
         """
@@ -83,7 +84,7 @@ class RobotNodeManager(Node):
         if msg.start: 
             self.handle_line_following_mode(msg)
 
-        if msg.back or self.manual_mode:
+        if not msg.start: 
             self.handle_manual_mode(msg)
 
     def handle_line_following_mode(self, msg: XboxController):
@@ -99,6 +100,7 @@ class RobotNodeManager(Node):
             self.get_logger().info("Line following mode already active.")
         else:
             self.is_line_following = True
+            self.manual_mode = False
             self.get_logger().info("Activating line following mode") 
             state = self.get_current_state()
             if state != None: self.help_line_mode(state.id)
@@ -126,7 +128,7 @@ class RobotNodeManager(Node):
             self.is_line_following = False
             self.manual_mode = True
             self.get_logger().info("Switched to manual mode.")
-            self.change_state(4)
+            #self.change_state(4)
             #Set joy values to zero to hit the 'brakes' on the robot
             msg.left_joy_y = 0.0
             msg.right_joy_y = 0.0
@@ -158,7 +160,8 @@ class RobotNodeManager(Node):
 
         req = GetState.Request()
         future = self.cli_get_state.call_async(req)
-        if future.result():
+        rclpy.spin_until_future_complete(self, future)
+        if future.result() is not None:
             state = future.result().current_state.label
             self.get_logger().info(f'Current state of PID motor node: {state}')
             return state
