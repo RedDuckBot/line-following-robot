@@ -2,6 +2,16 @@ import numpy as np
 import cv2
 from PID import PID
 
+"""
+This program is used for setuping up a camera for the line following application for a diff drive
+robot. The idea is to get a robot to following black tape on the floor using opencv and a pid controller.
+Once the corrective action is calculated from the pid controller, the robot will know to go forward, left, 
+or right, which the direction and effort for motors is sent to standard output. 
+
+The important variable to calculate for this program is max_error, which on line 97 can be printed out.
+This variable is used in the bot's ROS2 package bot_video.
+"""
+
 color = (0, 255, 0)  # Green color in BGR
 radius = 5  
 thickness = -1  # Thickness: -1 fills the circle
@@ -10,7 +20,7 @@ image_height = 480
 image_width = 640
 
 def getBinaryImage(img):
-    threshold = 127
+    threshold = 60 #Adjust this variable to help make tape line more noticeable
     max_val = 255
     kernel = np.ones((5,5), np.uint8)
 
@@ -23,7 +33,9 @@ def getBinaryImage(img):
 
 def getCentroid(img):
     contours, _ =  cv2.findContours(img,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
-    contour = contours[0]
+    #contour = contours[0]
+    contour = max(contours, key=cv2.contourArea)
+
     M = cv2.moments(contour)
     Cx = int(M['m10']/M['m00'])
     Cy = int(M['m01']/M['m00'])
@@ -60,7 +72,7 @@ def sendMotorInstruction(pid_output: float, error: float):
 def main():
 
     Fx = image_width // 2
-    max_error = 90 # max_error = Fx - (contour_width // 2)  
+    max_error = 125 # max_error = Fx - (contour_width // 2)  
     max_motor_effort = 100.0 
     kp = max_motor_effort / max_error
     ki = 0.0
@@ -68,7 +80,7 @@ def main():
     pid = PID(1.0,Fx,kp,ki,kd)
 
     #Setup camera
-    cap = cv2.VideoCapture(0)
+    cap = cv2.VideoCapture(4)
     cap.set(3,image_width)
     cap.set(4,image_height)
 
@@ -83,7 +95,7 @@ def main():
         pid_output = pid.compute_adjustment(Cx)
         sendMotorInstruction(abs(pid_output), pid.getError())
 
-        # print(Fx - (contour_width//2))
+        #print(Fx - (contour_width//2))
 
         cv2.imshow("Floor View orignal", img)
         cv2.imshow("Floor View binary", binary_image)
