@@ -71,7 +71,7 @@ class XboxControllerNode(Node):
         if trigger.name == "button_trigger_l":
             self.controller_.left_trigger = trigger.value
         else:
-            self.controller.right_trigger = trigger.value
+            self.controller_.right_trigger = trigger.value
 
         self.publish_controller_input()
 
