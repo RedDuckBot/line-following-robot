@@ -45,14 +45,14 @@ class PIDMotorNode(LifecycleNode):
 
         self.video_server_UDPsocket = None
         self.pid_thread = None
-        self.is_acitve = False
-        self.max_error = 0.0
+        self.is_active = False
+        self.max_error = 0.0 
         self.Fx = 0.0
-
         self.motors_client = ActionClient(self, MotorsInstruct, 
                                           "/motor_controller_actions")
         
         self.get_logger().info("PID motor controller initialized.")
+        self.get_logger().info("Before setting up for configure state make sure robot is placed on line.")
 
     def on_configure(self, previous_state: LifecycleState):
         """
@@ -61,6 +61,7 @@ class PIDMotorNode(LifecycleNode):
         Args:
             previous_state (LifecycleState): last state of life cycle ROS2 node
         """
+
         self.get_logger().info("IN on_configre")
 
         socket_pass = self.setup_UDP_socket()
@@ -69,7 +70,7 @@ class PIDMotorNode(LifecycleNode):
             return TransitionCallbackReturn.FAILURE
 
         self.setup_path()
-        return TransitionCallbackReturn.SUCCESSFUL
+        return TransitionCallbackReturn.SUCCESS
 
     def on_activate(self, previous_state: LifecycleState):
         """
@@ -78,6 +79,7 @@ class PIDMotorNode(LifecycleNode):
         Args:
             previous_state (LifecycleState): last state of life cycle ROS2 node
         """
+
         self.get_logger().info("IN on_activate")
 
         self.is_active = True
@@ -93,8 +95,11 @@ class PIDMotorNode(LifecycleNode):
         Args:
             previous_state (LifecycleState): last state of life cycle ROS2 node
         """
+
         self.get_logger().info("IN on_deactivate")
-        self.is_acitve = False
+        self.is_active = False
+        time.sleep(1.0)
+        self.motors_client.send_goal_async(self.create_motors_goal())
 
         return super().on_deactivate(previous_state)
     
@@ -105,6 +110,7 @@ class PIDMotorNode(LifecycleNode):
         Args:
             previous_state (LifecycleState): last state of life cycle ROS2 node
         """
+
         self.get_logger().info("IN on_cleanup")
         self.video_server_UDPsocket.close()
 
@@ -137,6 +143,7 @@ class PIDMotorNode(LifecycleNode):
 
         Return: bool: true if setup was successful otherwise false
         """
+
         setup_successful = True
 
         try:
@@ -158,20 +165,22 @@ class PIDMotorNode(LifecycleNode):
         controller node. Uses a PID controller and images to create the motor
         instructions.
         """
+
         max_motor_effort = 100.0
+        time_interval = 1.0 #seconds
         kp = max_motor_effort / self.max_error
         ki = 0.0
         kd = 0.0
-        pid = PID(1.0,self.Fx,kp,ki,kd)
+        pid = PID(time_interval,self.Fx,kp,ki,kd)
 
         while self.is_active: 
             img = self.getImage()
             Cx, _ = self.getCentroid(img)
             pid_output = pid.compute_adjustment(Cx)
             self.sendMotorInstruction(abs(pid_output),pid.getError())
-            time.sleep(0.1)
+            time.sleep(time_interval)
     
-    def sendMotorInstruction(self, pid_output: float, error: float):
+    def sendMotorInstruction(self, pid_output: float, error: float): 
         """
         Create motor instruction and send it to motor controller node.
 
@@ -179,28 +188,54 @@ class PIDMotorNode(LifecycleNode):
             pid_output (float): Corrective action cal. using Fx-Cx (error)
             error (float):      error from Fx-Cx
         """
+
+        direction = ""
+        message = ""
+        motors_goal = self.create_motors_goal()
+
+        if error > -25.0 and error < 25.0: #Forward
+            direction = "forward"
+            motors_goal.forward = True
+        elif error > 0: #Turn left; counter-clockwise
+            direction = "left"
+            motors_goal.counter_clockwise = True
+        else: #Turn right; clockwise
+            direction = "right"
+            motors_goal.clockwise = True
+
+        if motors_goal.forward or pid_output > 100.0: 
+            motors_goal.left_motors_effort = 50.0 
+            motors_goal.right_motors_effort = 50.0 
+        else:
+            if pid_output < 85.0:
+                pid_output = 85.0 
+
+            motors_goal.left_motors_effort = pid_output
+            motors_goal.right_motors_effort = pid_output
+        
+        message = direction + " L: " + str(motors_goal.left_motors_effort) + " R: " + str(motors_goal.right_motors_effort) 
+        self.get_logger().info(message)
+
+        self.motors_client.send_goal_async(motors_goal)
+
+    def create_motors_goal(self):
+        """
+        Create motors goal for motor controller server.
+
+        Return:
+            motor goal object
+        """
+
         motors_goal = MotorsInstruct.Goal() 
         motors_goal.forward = False
         motors_goal.reverse = False
         motors_goal.clockwise = False
-        motors_goal.counter_clockwiese = False
+        motors_goal.counter_clockwise = False
         motors_goal.idle = False
-        
-        if error > -20.0 and error < 20.0: #Forward
-            motors_goal.forward = True
-        elif error > 0: #Turn right; clockwise
-            motors_goal.clockwise = True
-        else: #Turn left; counter-clockwise
-            motors_goal.counter_clockwise
+        motors_goal.left_motors_effort = 0.0
+        motors_goal.right_motors_effort = 0.0
 
-        if pid_output > 100.0: 
-            motors_goal.left_motors_effort = 100
-            motors_goal.right_motors_effort = 100
-        else:
-            motors_goal.left_motors_effort = pid_output
-            motors_goal.right_motors_effort = pid_output
-
-        self.motors_client.send_goal_async(motors_goal)
+        return motors_goal
     
     def getImage(self):
         """
@@ -208,7 +243,8 @@ class PIDMotorNode(LifecycleNode):
 
         Return: A binary image
         """
-        threshold = 127
+
+        threshold = 60
         max_val = 255
         kernel = np.ones((5,5), np.uint8)
 
@@ -226,8 +262,7 @@ class PIDMotorNode(LifecycleNode):
 
     def getCentroid(self, img):
         """
-        Get centroid of black tape on floor of         Args:
-            previous_state (LifecycleState): last state of life cycle ROS2 nodeimage.
+        Get centroid of black tape on floor of         
 
         Args:
             img: Binary image from robots floor view
@@ -237,7 +272,7 @@ class PIDMotorNode(LifecycleNode):
         """
 
         contour = self.getContour(img)
-        M = cv2.moments(contour[0])
+        M = cv2.moments(contour)
         Cx = int(M['m10']/M['m00'])
         Cy = int(M['m01']/M['m00'])
 
@@ -251,17 +286,19 @@ class PIDMotorNode(LifecycleNode):
         Post:
             Class attributes Fx and max_error are set.
         """
+
         self.get_logger().info("Lets setup the robots line path.")
-        self.get_logger().info("Place robot on the center of line path. Press enter.")
-        input()
+        self.get_logger().info("Place robot on the center of line path.") 
 
         img = self.getImage()
         _, width = img.shape
         self.Fx = width//2
 
         contour = self.getContour(img)
-        _, _, width, _ = cv2.boundingRect(contour)
-        self.max_error = self.Fx - width//2
+        _, _, contour_width, _ = cv2.boundingRect(contour)
+
+        self.max_error = self.Fx - (contour_width // 2)
+        self.get_logger().info(str(self.max_error))
 
     def getContour(self, img):
         """
@@ -273,8 +310,9 @@ class PIDMotorNode(LifecycleNode):
         Return:
             contour of tape from  
         """
+
         contours, _ =  cv2.findContours(img,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
-        contour = [contours[0]]
+        contour = max(contours, key=cv2.contourArea)
 
         return contour
 

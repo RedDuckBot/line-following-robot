@@ -3,9 +3,9 @@
 	<let name="vid_config_path" 
 	value="/home/redbot/projects/line-following-robot/bot_setup/ros2_ws/src/bot_video/config/params.yaml"/>
 
-	<node pkg="bot_manager" exec="manager"/>
-	<node pkg="bot_motors" exec="motor_controller_node"/>
 	<node pkg="bot_video" exec="pid_node">
 		<param from="$(var vid_config_path)"/>
 	</node>
+	<node pkg="bot_motors" exec="motor_controller_node"/>
+	<node pkg="bot_manager" exec="manager"/>
 </launch>
